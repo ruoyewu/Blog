@@ -127,7 +127,7 @@ repo sync
 repo init -u https://aosp.tuna.tsinghua.edu.cn/platform/manifest
 ```
 
-使用时可能会报错说无法连接到 gerrit.googlesource.com ，这时需要将下面的一段内容复制到`~/.bashrc`文件里面去，
+使用时可能会报错说无法连接到 gerrit.googlesource.com ，这时需要将下面的一段内容复制到`~/.bash_profile`文件里面去，
 
 ```shell
 export REPO_URL='https://mirrors.tuna.tsinghua.edu.cn/git/git-repo/'

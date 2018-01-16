@@ -1,7 +1,6 @@
 ---
 title: Mac oh-my-zsh 使用
 date: 2018-01-11 00:00
-categories: 工具
 tags: 
 	- linux
 	- mac
