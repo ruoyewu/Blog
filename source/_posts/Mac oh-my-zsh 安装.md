@@ -6,6 +6,7 @@ tags:
 	- linux
 	- mac
 	- shell
+	- 工具
 ---
 
 ## Shell

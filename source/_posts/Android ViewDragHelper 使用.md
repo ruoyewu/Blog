@@ -1,6 +1,5 @@
 ---
 title: Android ViewDragHelper 使用
-categories: android
 tags: android
 ---
 

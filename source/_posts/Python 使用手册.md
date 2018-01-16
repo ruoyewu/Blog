@@ -1,8 +1,9 @@
 ---
 title: Python 使用手册
 date: 2017-11-14 00:00:00
-categories: 工具
-tags: python
+tags: 
+	- python
+	- 工具
 ---
 
 # python使用手册

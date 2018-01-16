@@ -1,7 +1,6 @@
 ---
 title: Android 事件分发
 date: 2017-10-19 00:00:00
-categories: android
 tags: android
 ---
 

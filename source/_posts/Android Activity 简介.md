@@ -1,7 +1,6 @@
 ---
 title: Activity 简述
 date: 2017-05-06 00:00:00
-categories: android
 tags: android
 ---
 

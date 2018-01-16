@@ -1,7 +1,6 @@
 ---
 title: Android 自定义layout实操
 date: 2018-01-08 00:00:00
-categories: android
 tags: android
 ---
 

@@ -1,7 +1,6 @@
 ---
 title: Android view 视图层次
 date: 2018-01-10 22:47
-categories: android
 tags: 
 	- android
 	- android 源码

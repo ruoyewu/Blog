@@ -1,8 +1,9 @@
 ---
 title: Mac 使用手册
 date: 2017-06-08 00:00:00
-categories: 工具
-tags: mac
+tags: 
+	- mac
+	- 工具
 ---
 
 # Mac使用手册
