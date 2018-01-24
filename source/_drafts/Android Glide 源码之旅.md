@@ -3,6 +3,7 @@ title: Android Glide 源码之旅
 tags:
 	- android
 	- android 源码
+	- glide
 ---
 
 ## Glide 介绍
@@ -187,5 +188,447 @@ private RequestManager fragmentGet(@NonNull Context context,
 
 >   A class for managing and starting requests for Glide. Can use activity, fragment and connectivity lifecycle events to intelligently stop, start, and restart requests. Retrieve either by instantiating a new object, or to take advantage built in Activity and Fragment lifecycle handling, use the static Glide.load methods with your Fragment or Activity.
 >
->   一个用来为 Glide 管理和开始请求的类。可以使用 Activity 、Fragment 和其他连接了生命周期的事件来智能地停止、开始或者重新开始一些请求。
+>   一个用来为 Glide 管理和开始请求的类。可以使用 Activity 、Fragment 和其他连接了生命周期的事件来智能地停止、开始或者重新开始一些请求。通过实例化一个实例，或者从 Activity 、 Fragment 的生命周期中已经构建的拿出，然后使用静态方法`Glide.with.load`就 Ok 了。
 
+首先看一下这个类的方法，我们最熟悉的就是`load()`这个方法，通过传入一个图片的 Uri 、Url 或其他路径，让 Glide 知道我们需要得到的图片具体的获取方式。`load()`方法也有多个重载，分别对应的是 Bitmap byte[] Drawable File Integer Object String Uri URL 等。由于我一般都是传入一个图片的链接来加载图片，所以首先看一下`load(String)`方法的实现：
+
+```java
+public RequestBuilder<Drawable> load(@Nullable String string) {
+  return asDrawable().load(string);
+}
+```
+
+这个方法的返回值是`RequestBuilder<Drawable>`，然后在方法中调用的是`asDrawable().load()`，那顺着这两个方法，首先找到`asDrawable()`方法的定义：
+
+```java
+public RequestBuilder<Drawable> asDrawable() {
+  return as(Drawable.class);
+}
+```
+
+这个方法的作用只是将「 Drawable 」由方法名变为了方法的参数，没有什么值得关注的，那么就直接来看`as()`方法：
+
+```java
+public <ResourceType> RequestBuilder<ResourceType> as(
+    @NonNull Class<ResourceType> resourceClass) {
+  return new RequestBuilder<>(glide, this, resourceClass, context);
+}
+```
+
+可以看到，在这个方法里创建了一个 RequestBuilder 的实例，其中将上面的`Drawable.class`还是作为了参数传入了 RequestBuilder 的构造方法。然后再看一下其他的如`load(File)`方法，发现它们也都是调用了`asDrawable().load()`方法，同时这个类还提供了使用者可以主动调用的如`asBitmap()`、`asFile()`等方法，如`asBitmap`的实现：
+
+```java
+public RequestBuilder<Bitmap> asBitmap() {
+  return as(Bitmap.class).apply(DECODE_TYPE_BITMAP);
+}
+```
+
+由此可知，RequestManager 类的主要作用就是根据用户的需求构建不同类型的 RequestBuilder ，然后将这个实例返回给用户进行下一步操作。
+
+### RequestBuilder
+
+在 RequestManager 中，调用的`load()`方法最终都会变为调用 RequestBuilder 的`load()`方法，还是首先看一下这个类的介绍：
+
+>    A generic class that can handle setting options and staring loads for generic resource types.
+>
+>    一个可以为通用的资源类型处理设置选项、开始加载的通用类。
+
+首先看一下`load(String)`方法：
+
+```java
+public RequestBuilder<TranscodeType> load(@Nullable String string) {
+  return loadGeneric(string);
+}
+
+private RequestBuilder<TranscodeType> loadGeneric(@Nullable Object model) {
+  this.model = model;
+  isModelSet = true;
+  return this;
+}
+```
+
+这里只是将图片的链接以参数的方式传入了类内部，所以这个方法还不是加载图片的，他只是先将这个数据保存了下来。至于其他的一些`load()`方法，也都有调用了`loadGeneric()`这个方法，只不过它们有的还会调用`apply()`这个方法，设置一下 RequestOptions 的内容。
+
+调用了`load()`方法之后，就可以直接调用`into()`方法将对应的图片资源加载到 ImageView 等显示图片的控件上了。那么就来看一看`into(ImageView)`方法：
+
+```java
+public ViewTarget<ImageView, TranscodeType> into(@NonNull ImageView view) {
+  Util.assertMainThread();
+  Preconditions.checkNotNull(view);
+  RequestOptions requestOptions = this.requestOptions;
+  if (!requestOptions.isTransformationSet()
+      && requestOptions.isTransformationAllowed()
+      && view.getScaleType() != null) {
+    // Clone in this method so that if we use this RequestBuilder to load into a View and then
+    // into a different target, we don't retain the transformation applied based on the previous
+    // View's scale type.
+    switch (view.getScaleType()) {
+      case CENTER_CROP:
+        requestOptions = requestOptions.clone().optionalCenterCrop();
+        break;
+      case CENTER_INSIDE:
+        requestOptions = requestOptions.clone().optionalCenterInside();
+        break;
+      case FIT_CENTER:
+      case FIT_START:
+      case FIT_END:
+        requestOptions = requestOptions.clone().optionalFitCenter();
+        break;
+      case FIT_XY:
+        requestOptions = requestOptions.clone().optionalCenterInside();
+        break;
+      case CENTER:
+      case MATRIX:
+      default:
+        // Do nothing.
+    }
+  }
+  return into(
+      glideContext.buildImageViewTarget(view, transcodeClass),
+      /*targetListener=*/ null,
+      requestOptions);
+}
+```
+
+可以得知，当我们调用`into(ImageView)`方法的时候，它会将 ImageView 通过一定的转换变成 ViewTarget ，再调用`into(Y extends Target, RequestListener, RequestOptions)`,而把一个 ImageView 转换为 ViewTarget 用的是`GlideContext.buildImageViewTarget(ImageView, Class)`方法，这个 Class 就是当时传入的`Bitmap.Class`、`Drawable.class`等。如果当时传入的是`Drawable.class`，最终就会返回一个`DrawableImageViewTarget`类的实例，而在这个类中实现了`setResource`方法：
+
+```java
+protected void setResource(@Nullable Drawable resource) {
+  view.setImageDrawable(resource);
+}
+```
+
+图片资源加载完成之后，就是通过这个方法显示到 ImageView 上去的。得到这个 Traget 之后，Glide 会接着调用`into(Target, RequestListener, RequestOptions)`方法：
+
+```java
+private <Y extends Target<TranscodeType>> Y into(
+    @NonNull Y target,
+    @Nullable RequestListener<TranscodeType> targetListener,
+    @NonNull RequestOptions options) {
+  Util.assertMainThread();
+  Preconditions.checkNotNull(target);
+  if (!isModelSet) {
+    throw new IllegalArgumentException("You must call #load() before calling #into()");
+  }
+  options = options.autoClone();
+  Request request = buildRequest(target, targetListener, options);
+  Request previous = target.getRequest();
+  if (request.isEquivalentTo(previous)
+      && !isSkipMemoryCacheWithCompletePreviousRequest(options, previous)) {
+    request.recycle();
+    // If the request is completed, beginning again will ensure the result is re-delivered,
+    // triggering RequestListeners and Targets. If the request is failed, beginning again will
+    // restart the request, giving it another chance to complete. If the request is already
+    // running, we can let it continue running without interruption.
+    if (!Preconditions.checkNotNull(previous).isRunning()) {
+      // Use the previous request rather than the new one to allow for optimizations like skipping
+      // setting placeholders, tracking and un-tracking Targets, and obtaining View dimensions
+      // that are done in the individual Request.
+      previous.begin();
+    }
+    return target;
+  }
+  requestManager.clear(target);
+  target.setRequest(request);
+  requestManager.track(target, request);
+  return target;
+}
+```
+
+一般情况下，调用到`into()`方法之后，图片就会进行加载然后显示到 ImageView 上面去了，这个加载就是由 Request 这个类来完成的。可以看到，倒数第二句是`requestManager.track(Target, Request)`，然后再看这个方法的实现：
+
+```java
+// in RequestManager
+void track(@NonNull Target<?> target, @NonNull Request request) {
+  targetTracker.track(target);
+  requestTracker.runRequest(request);
+}
+
+// in RequestTracker
+public void runRequest(@NonNull Request request) {
+  requests.add(request);
+  if (!isPaused) {
+    request.begin();
+  } else {
+    pendingRequests.add(request);
+  }
+}
+```
+
+可以看到，这个 Request 最终对进入一集合中去统一管理，同时调用它的`begin()`方法开始发起请求。
+
+所以这里主要涉及到两个类，`ViewTarget`和`Request`，它们分别对应的外部显示图片的控件和内部加载图片的逻辑，下面就先来看看这两个类。
+
+### ViewTarget
+
+ViewTarget 的介绍：
+
+>   A base Target for laoding Bitmap into View that provides default implementations for most most methods and can determine the size of views using a OnDrawableListener.
+>
+>   一个用来加载 Bitmap 到一个 View 的基础 Target 类，其中这个 View 提供了大多数方法的默认实现，并且可以使用一个 OnDrawableListener 确定 view 的大小。
+
+总而言之，这个类持有了我们需要显示图片的 View ，同时可以在这个类中看到，它将 Request 作为一个 Tag 传入了 View 中，并通过获取这个 Tag 得到 Request 。还能再某种程度上控制 Request 的加载过程，以及添加和解除 View 和 Request 的联系等。
+
+### Request
+
+>   A request that loads a resource for an Target.
+>
+>   一个用来为 Target 加载资源的请求。
+
+由介绍就可以看出，Request 就是一个用来加载图片资源的请求。但是 Request 本身只是一个接口，并没有对应方法的实现，所以需要转到它的实现类中去看，发现有一个类 SingleRequest 实现了 Request。
+
+在之前的如 RequestBuilder 类中我们可以看到，加载图片时调用了`Request.begin()`方法，在 Request 接口中关于次方法的生命就是：
+
+```java
+/**
+ * Starts an asynchronous load.
+ */
+void begin();
+```
+
+所以，首先看一下 SingleRequest 类中关于`begin()`方法的实现：
+
+```java
+public void begin() {
+  assertNotCallingCallbacks();
+  stateVerifier.throwIfRecycled();
+  startTime = LogTime.getLogTime();
+  if (model == null) {
+    if (Util.isValidDimensions(overrideWidth, overrideHeight)) {
+      width = overrideWidth;
+      height = overrideHeight;
+    }
+    // Only log at more verbose log levels if the user has set a fallback drawable, because
+    // fallback Drawables indicate the user expects null models occasionally.
+    int logLevel = getFallbackDrawable() == null ? Log.WARN : Log.DEBUG;
+    onLoadFailed(new GlideException("Received null model"), logLevel);
+    return;
+  }
+  if (status == Status.RUNNING) {
+    throw new IllegalArgumentException("Cannot restart a running request");
+  }
+  // If we're restarted after we're complete (usually via something like a notifyDataSetChanged
+  // that starts an identical request into the same Target or View), we can simply use the
+  // resource and size we retrieved the last time around and skip obtaining a new size, starting a
+  // new load etc. This does mean that users who want to restart a load because they expect that
+  // the view size has changed will need to explicitly clear the View or Target before starting
+  // the new load.
+  if (status == Status.COMPLETE) {
+    onResourceReady(resource, DataSource.MEMORY_CACHE);
+    return;
+  }
+  // Restarts for requests that are neither complete nor running can be treated as new requests
+  // and can run again from the beginning.
+  status = Status.WAITING_FOR_SIZE;
+  if (Util.isValidDimensions(overrideWidth, overrideHeight)) {
+    onSizeReady(overrideWidth, overrideHeight);
+  } else {
+    target.getSize(this);
+  }
+  if ((status == Status.RUNNING || status == Status.WAITING_FOR_SIZE)
+      && canNotifyStatusChanged()) {
+    target.onLoadStarted(getPlaceholderDrawable());
+  }
+  if (IS_VERBOSE_LOGGABLE) {
+    logV("finished run method in " + LogTime.getElapsedMillis(startTime));
+  }
+}
+```
+
+上面就是`begin()`方法的全部代码，对当前的 status 进行了判断，处于不同的状态会给予不同的响应，其中当`status == Status.COMPLETE`的时候，会调用`onResourceReady(Resource, DataSource)`方法，表示当加载成功之后作出的响应，然后进行一系列资源的判断，最后当所有资源请求无误之后，就会调用`Target.setResource()`方法，对应在 DrawableImageViewTarget 的就是为 ImageView 设置图片资源。但是这个资源在最开始肯定是不可能处于`Status.COMPLETE`状态的，所以当第一次调用的时候调用的是`onSizeReady()`这个方法，首先会验证控件的宽高是否合法，如果合法，就调用`onSizeReady()`方法，然后开始调用 Engine 的加载图片的方法。
+
+```java
+public void onSizeReady(int width, int height) {
+  ...
+  ...
+  loadStatus = engine.load(
+      glideContext,
+      model,
+      requestOptions.getSignature(),
+      this.width,
+      this.height,
+      requestOptions.getResourceClass(),
+      transcodeClass,
+      priority,
+      requestOptions.getDiskCacheStrategy(),
+      requestOptions.getTransformations(),
+      requestOptions.isTransformationRequired(),
+      requestOptions.isScaleOnlyOrNoTransform(),
+      requestOptions.getOptions(),
+      requestOptions.isMemoryCacheable(),
+      requestOptions.getUseUnlimitedSourceGeneratorsPool(),
+      requestOptions.getUseAnimationPool(),
+      requestOptions.getOnlyRetrieveFromCache(),
+      this);
+  // This is a hack that's only useful for testing right now where loads complete synchronously
+  // even though under any executor running on any thread but the main thread, the load would
+  // have completed asynchronously.
+  if (status != Status.RUNNING) {
+    loadStatus = null;
+  }
+  if (IS_VERBOSE_LOGGABLE) {
+    logV("finished onSizeReady in " + LogTime.getElapsedMillis(startTime));
+  }
+}
+```
+
+如上代码中的`load()`方法，就是 Engine 用来加载图片的，同时将加载结果返回给当前状态。
+
+### Engine
+
+>   Responsible for starting loads and managing active and cached resources.
+>
+>   负责开始加载并管理可用的和已经缓存的资源。
+
+在 Request 类中，通过调用 Engine 的`load()`方法来加载图片资源，所以现在先看这个方法：
+
+```java
+public <R> LoadStatus load(
+    GlideContext glideContext,
+    Object model,
+    Key signature,
+    int width,
+    int height,
+    Class<?> resourceClass,
+    Class<R> transcodeClass,
+    Priority priority,
+    DiskCacheStrategy diskCacheStrategy,
+    Map<Class<?>, Transformation<?>> transformations,
+    boolean isTransformationRequired,
+    boolean isScaleOnlyOrNoTransform,
+    Options options,
+    boolean isMemoryCacheable,
+    boolean useUnlimitedSourceExecutorPool,
+    boolean useAnimationPool,
+    boolean onlyRetrieveFromCache,
+    ResourceCallback cb) {
+  Util.assertMainThread();
+  long startTime = LogTime.getLogTime();
+  EngineKey key = keyFactory.buildKey(model, signature, width, height, transformations,
+      resourceClass, transcodeClass, options);
+  EngineResource<?> active = loadFromActiveResources(key, isMemoryCacheable);
+  if (active != null) {
+    cb.onResourceReady(active, DataSource.MEMORY_CACHE);
+    if (Log.isLoggable(TAG, Log.VERBOSE)) {
+      logWithTimeAndKey("Loaded resource from active resources", startTime, key);
+    }
+    return null;
+  }
+  EngineResource<?> cached = loadFromCache(key, isMemoryCacheable);
+  if (cached != null) {
+    cb.onResourceReady(cached, DataSource.MEMORY_CACHE);
+    if (Log.isLoggable(TAG, Log.VERBOSE)) {
+      logWithTimeAndKey("Loaded resource from cache", startTime, key);
+    }
+    return null;
+  }
+  EngineJob<?> current = jobs.get(key, onlyRetrieveFromCache);
+  if (current != null) {
+    current.addCallback(cb);
+    if (Log.isLoggable(TAG, Log.VERBOSE)) {
+      logWithTimeAndKey("Added to existing load", startTime, key);
+    }
+    return new LoadStatus(cb, current);
+  }
+  EngineJob<R> engineJob =
+      engineJobFactory.build(
+          key,
+          isMemoryCacheable,
+          useUnlimitedSourceExecutorPool,
+          useAnimationPool,
+          onlyRetrieveFromCache);
+  DecodeJob<R> decodeJob =
+      decodeJobFactory.build(
+          glideContext,
+          model,
+          key,
+          signature,
+          width,
+          height,
+          resourceClass,
+          transcodeClass,
+          priority,
+          diskCacheStrategy,
+          transformations,
+          isTransformationRequired,
+          isScaleOnlyOrNoTransform,
+          onlyRetrieveFromCache,
+          options,
+          engineJob);
+  jobs.put(key, engineJob);
+  engineJob.addCallback(cb);
+  engineJob.start(decodeJob);
+  if (Log.isLoggable(TAG, Log.VERBOSE)) {
+    logWithTimeAndKey("Started new load", startTime, key);
+  }
+  return new LoadStatus(cb, engineJob);
+}
+```
+
+这个方法的基本逻辑就是，先根据当前要获取的资源构建一个 EngineKey 实例，用来作为从已经加载得到的可用的或缓存的资源中得到当前请求资源的键，然后首先从活跃的资源表中查找是否有对应着这个 key 的资源，使用`loadFromActiveResources()`方法，如果没有找到，那就到缓存中寻找，使用`loadFromCache()`方法，如果再没有找到，再到工作列表中寻找，如果正在工作，就返回工作状态，如果再找不到，那就只能创建一个工作并加到工作列表，然后开始这项工作。
+
+### EngineJob
+
+>   A class that manages a load by adding and removing callbacks for for the load and notifying callbacks when the load completes.
+>
+>   一个通过添加和移除资源加载的回调来管理资源并在资源加载完成之后通知回调方法的类。
+
+这个方法实现了一些关于资源加载完成之后的回调方法，如`onResourceReady()` `onLoadFail()` 等方法，使用了 Handle-Message 的方式处理线程之间的信息传递，然后就是使用 GlideExecutor 执行加载工作。
+
+### DecodeJob
+
+而这个要执行的工作就是 DecodeJob，先看一下 DecodeJob 的介绍：
+
+>   A class responsible for decoding resources either from cached data or from the original source and applying transformations and transcodes.
+>
+>   一个负责解码从缓存或者源地址得到的资源并且进行一些转化的类。
+
+由于这个类是 Runable 的实现，同时也是把这个类当作一个作业送入 ThreadPoolExecutor 中的，所以这个类的入口应该是`run()`方法。
+
+```java
+public void run() {
+  // This should be much more fine grained, but since Java's thread pool implementation silently
+  // swallows all otherwise fatal exceptions, this will at least make it obvious to developers
+  // that something is failing.
+  TraceCompat.beginSection("DecodeJob#run");
+  // Methods in the try statement can invalidate currentFetcher, so set a local variable here to
+  // ensure that the fetcher is cleaned up either way.
+  DataFetcher<?> localFetcher = currentFetcher;
+  try {
+    if (isCancelled) {
+      notifyFailed();
+      return;
+    }
+    runWrapped();
+  } catch (Throwable t) {
+    // Catch Throwable and not Exception to handle OOMs. Throwables are swallowed by our
+    // usage of .submit() in GlideExecutor so we're not silently hiding crashes by doing this. We
+    // are however ensuring that our callbacks are always notified when a load fails. Without this
+    // notification, uncaught throwables never notify the corresponding callbacks, which can cause
+    // loads to silently hang forever, a case that's especially bad for users using Futures on
+    // background threads.
+    if (Log.isLoggable(TAG, Log.DEBUG)) {
+      Log.d(TAG, "DecodeJob threw unexpectedly"
+          + ", isCancelled: " + isCancelled
+          + ", stage: " + stage, t);
+    }
+    // When we're encoding we've already notified our callback and it isn't safe to do so again.
+    if (stage != Stage.ENCODE) {
+      throwables.add(t);
+      notifyFailed();
+    }
+    if (!isCancelled) {
+      throw t;
+    }
+  } finally {
+    // Keeping track of the fetcher here and calling cleanup is excessively paranoid, we call
+    // close in all cases anyway.
+    if (localFetcher != null) {
+      localFetcher.cleanup();
+    }
+    TraceCompat.endSection();
+  }
+}
+```
+
+可以看到，这里还是首先做了一些资源与操作正确性的判断，然后调用 了`runWrapper()`方法，这里需要关注到的是 DataFetcherGenarator 类，顾名思义，就是用来构建真正的 DataFetcher 的类，
