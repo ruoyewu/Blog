@@ -1,5 +1,5 @@
 ---
-title: Android Glide 源码之旅
+title: Android Glide 源码详析
 tags:
 	- android
 	- android 源码
@@ -631,4 +631,180 @@ public void run() {
 }
 ```
 
-可以看到，这里还是首先做了一些资源与操作正确性的判断，然后调用 了`runWrapper()`方法，这里需要关注到的是 DataFetcherGenarator 类，顾名思义，就是用来构建真正的 DataFetcher 的类，
+可以看到，这里还是首先做了一些资源与操作正确性的判断，然后调用 了`runWrapper()`方法，这里需要关注到的是 DataFetcherGenarator 类，顾名思义，就是用来构建真正的 DataFetcher 的类。通过`run()` → `runWrapper()` → `runGenerators()`的一连串方法调用，最后会调用`DataFetcherGenerator`接口的`startNext()`方法，而这个接口有三个实现，`DataCacheGenerator`、`ResourceCacheGenerator`和`SourceGenerator`三个实现类，例如`DataCacheGenerator`类中的`startNext()`方法，
+
+```java
+public boolean startNext() {
+  while (modelLoaders == null || !hasNextModelLoader()) {
+    sourceIdIndex++;
+    if (sourceIdIndex >= cacheKeys.size()) {
+      return false;
+    }
+    Key sourceId = cacheKeys.get(sourceIdIndex);
+    // PMD.AvoidInstantiatingObjectsInLoops The loop iterates a limited number of times
+    // and the actions it performs are much more expensive than a single allocation.
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+    Key originalKey = new DataCacheKey(sourceId, helper.getSignature());
+    cacheFile = helper.getDiskCache().get(originalKey);
+    if (cacheFile != null) {
+      this.sourceKey = sourceId;
+      modelLoaders = helper.getModelLoaders(cacheFile);
+      modelLoaderIndex = 0;
+    }
+  }
+  loadData = null;
+  boolean started = false;
+  while (!started && hasNextModelLoader()) {
+    ModelLoader<File, ?> modelLoader = modelLoaders.get(modelLoaderIndex++);
+    loadData =
+        modelLoader.buildLoadData(cacheFile, helper.getWidth(), helper.getHeight(),
+            helper.getOptions());
+    if (loadData != null && helper.hasLoadPath(loadData.fetcher.getDataClass())) {
+      started = true;
+      loadData.fetcher.loadData(helper.getPriority(), this);
+    }
+  }
+  return started;
+}
+```
+
+看到在第28行调用了`loadData.fetcher.loadData()`方法，这里的`loadData`方法就是`DataFetcher`接口的方法。
+
+### ModelLoader & LoadData
+
+>   A factory interface for translating an arbitrarily complex data model into a concrete data type that can be used by an DataFetcher to obtain the data for a resource represented by the model.
+
+ModeLoader 是一个接口，它的定义是这样的`ModelLoader<Model, Data>`，这两个范型分别对应着这次数据加载过程中的输入与输出，如对于它的一个实现`UrlLoader`来说，这两个范型就对应着`<URL, InputStream>`，即是一个网络加载图片的过程中对应的输入与输出。总而言之，`ModelLoader`类的主要职责就是构建一个对应的`LoadData`实例，通过`buildLoadData()`方法。而那些`ModelLoader`的实现则通过`buildLoadData()`方法构建出实际要使用的一个`DataFetcher`并与这个`LoadData`联系起来，并最终传回调用方，调用方再使用`LoadData.fetcher.loadData()`方法执行加载操作。
+
+### DataFetcher
+
+>   Lazily retrieves data that can be used to load a resource.
+>
+>   懒加载那些能够用于加载一个资源的数据。
+
+这个接口中的`loadData()`方法，就是我们在使用 Glide 加载一张图片的时候必须要经过的一个方法，是这个方法，将我们提供给 Glide 的一串 URL 或者是文件路径变成了我们需要得到的图片资源，同时这个接口也有许多种实现，分别应对不同的获取图片资源的方法，如网络请求、本地文件读取、资源文件加载等等。当使用一个图片的 URL 来加载图片时，使用的是`HttpUrlFetcher`这个实现类，大致看一下这个类中的方法，就可以知道，类中使用了`HttpUrlConnection`作为加载图片的网络引擎，大致就是使用`HttpUrlConnection`将图片资源下载到本地然后经过一定的处理验证，最终返回给调用方。其他的`DataFetcher`的实现类也大都遵循着类似的流程。最终通过`DataCallback`接口的回掉方法`onDataReady()`和`onLoadFailed()`将这个结果传送出去。
+
+### 回调
+
+当然这个回调也是层层调用的，`DataFetcherGenerator`的实现类同时也实现了`DataCallback`接口，然后在实现方法的时候调用了`FetcherReadyCallback`对应的方法，`DecodeJob`类实现了`FetcherReadyCallback`接口，看一下`onDataFetcherReady()`方法：
+
+```java
+public void onDataFetcherReady(Key sourceKey, Object data, DataFetcher<?> fetcher,
+    DataSource dataSource, Key attemptedKey) {
+  ...
+  ...
+  if (Thread.currentThread() != currentThread) {
+    runReason = RunReason.DECODE_DATA;
+    callback.reschedule(this);
+  } else {
+    TraceCompat.beginSection("DecodeJob.decodeFromRetrievedData");
+    try {
+      decodeFromRetrievedData();
+    } finally {
+      TraceCompat.endSection();
+    }
+  }
+}
+```
+
+由上面的`ModelLoad`可知，对于一个网络图片资源，通过网络请求得到的结果只是一个`InputStream`，距离我们需要的`Bitmap`或者`Drawable`还有一段距离，而这个转化的过程，就是从这里的`decodeFromRetrivedData()`方法开始的。这里是有一系列的方法调用得到`Resource<T>`这个类的实例，保存的是一个`Bitmap`或其他类似结构。调用顺序为`decodeFromRetrivedData` → `decodeFromData()` → `decodeFromFetcher()` → `runLoadPath()` → `LoadPath.load()`进入到`LoadPath`类的功能区中。
+
+### LoadPath
+
+>   For a given DataFetcher for a given data class, attempts to fetch the data and then run it through one or more DecodePaths.
+
+在进入`LoadPath`类的方法域中时，将需要解析的数据封装成了`DataRewinder`，然后通过方法调用链`load()` → `loadWithExceptionList()` → `DecodePath.decode()`进入`DecodePath`域。
+
+### DecodePath
+
+>   Attempts to decode and transcode  resource type from a given data type.
+>
+>   将所给的数据类型经过解码、转码得到需要的资源类型。
+
+由介绍即可知道，这个类的功能就是将加载到的原始数据进行转化得到能够供于使用的数据，如由一个`InputStream`类型的初始数据得到对应的`Bitmap`。入口方法为`decode()`：
+
+```java
+public Resource<Transcode> decode(DataRewinder<DataType> rewinder, int width, int height,
+    Options options, DecodeCallback<ResourceType> callback) throws GlideException {
+  Resource<ResourceType> decoded = decodeResource(rewinder, width, height, options);
+  Resource<ResourceType> transformed = callback.onResourceDecoded(decoded);
+  return transcoder.transcode(transformed, options);
+}
+```
+
+从原始数据变成可供使用的资源，共经历了三个过程，即这里的`decodeResource()` → `callback.onResourceDecodedd()` → `transcoder.transcode()`，在调用`decodeResource()`之后就已经得到了`Resource<ResourceType>`资源，后面的都是用来修整，如对图片进行变化等操作的时候，就是在后面的方法里进行的。在`decodeResource()`方法中调用了`ResourceDecoder.decode()`方法，而`ResourceDecoder`又是一个接口，实现了这个接口的类很多，分别对应着不同的用处。（见下一项）
+
+在使用 Glide 的时候，可以通过`.apply(RequestOptions)`对图片做一些例如剪裁的要求，这些对 Bitmap 的转化操作，都是在`callback.onResourceDecoded()`方法中完成的。实现这个接口的类是`DecodeJob`，然后调用了`DecodeJob`的`onResourceDecoded()`方法，可以看到，这个方法就是根据传进来的`Transformation`对初始的资源进行转化，只需要实现`transform()`方法就可以了。
+
+进行了图片形状、参数的一些转变之后，接下来就会调用`ResourceTranscoder.transcode()`方法，将一种图片格式转化为另一种图片格式，如`class BitmapDrawableTranscoder implements ResourceTranscoder<Bitmap, BitmapDrawable>`，作用是将格式为`Bitmap`的图片资转化为格式`BitmapDrawable`的图片资源，同时这个类还有一些其他的实现，分别用于其他类型之间的转换。
+
+进行了这三步的解码、转码之后就得到了最终需要使用的图片资源，然后逐层返回到调用端，最终返回到`DecodeJob.decodeFromRetrievedData()`这个方法停止。（见下两项）
+
+### ResourceDecoder
+
+```java
+/**
+ * An interface for decoding resources.
+ *
+ * @param <T> The type the resource will be decoded from (File, InputStream etc).
+ * @param <Z> The type of the decoded resource (Bitmap, Drawable etc).
+ */
+public interface ResourceDecoder<T, Z> {
+    boolean handles(@NonNull T source, @NonNull Options options) throws IOException;
+    Resource<Z> decode(@NonNull T source, int width, int height, @NonNull Options options)
+      throws IOException;
+}
+```
+
+所以，实现了这个接口的类，才真正完成了从`T`到`Z`的过程。实现这个接口的类很多，每个类都对应着一个确定的`T`和`Z`，如类`class StreamBitmapDecoder implements ResourceDecoder<InputStream, Bitmap>`，完成将`InputStream`转化为`Bitmap`的操作，其他的实现类也都大抵如此。由此便可以得到`DecodePath`中调用`decodeResource()`得到的数据类型。
+
+### DecodeJob
+
+`DecodeJob.decodeFromRetrievedData()`方法：
+
+```java
+private void decodeFromRetrievedData() {
+  if (Log.isLoggable(TAG, Log.VERBOSE)) {
+    logWithTimeAndKey("Retrieved data", startFetchTime,
+        "data: " + currentData
+        + ", cache key: " + currentSourceKey
+        + ", fetcher: " + currentFetcher);
+  }
+  Resource<R> resource = null;
+  try {
+    resource = decodeFromData(currentFetcher, currentData, currentDataSource);
+  } catch (GlideException e) {
+    e.setLoggingDetails(currentAttemptingKey, currentDataSource);
+    throwables.add(e);
+  }
+  if (resource != null) {
+    notifyEncodeAndRelease(resource, currentDataSource);
+  } else {
+    runGenerators();
+  }
+}
+```
+
+在得到这个最终的返回值`Resource<R>`之后，会判断这个对象是否可用，如果不可用，就会调用`runGenerators()`再次加载图片或者是报错等，如果可用，就会调用`notifyEncodeAndRelease()`方法，将这一层的资源通过回调的方式再转发给上一层调用方，并释放掉此次加载图片用到的资源并重新初始化。这里回调的地方是`EngineJob`。
+
+### EngineJob
+
+看一下`EngineJob`的回调方法：
+
+```java
+public void onResourceReady(Resource<R> resource, DataSource dataSource) {
+  this.resource = resource;
+  this.dataSource = dataSource;
+  MAIN_THREAD_HANDLER.obtainMessage(MSG_COMPLETE, this).sendToTarget();
+}
+```
+
+发现在这里使用了`Handler`这个类进行了异步 → 同步的变化，得到图片资源，退出工作线程，回到 UI 线程，并将图片资源加载到对应的 ViewTarget 上，这里间接调用的是`handleResultOnMainThread()`方法。然后在这个方法中首先是对这个结果做一些缓存上的工作，然后再次回调`ResourceCallback.onResourceReady()`方法，到达`SingleRequest`这个类域里。
+
+### SingleRequest
+
+从这个类里面的回调方法`onResourceReady(Resource<?>, DataSource)`开始，到`onResourceReady(Resource<R>, R, DataSource)`，可以看到这个方法里面调用了`target.onResourceReady()`方法，这里的`target`就是`Target`，用于承载图片的最终去处 —— `ImageView`的地方，在这个方法里，完成了为`ImageView`设置图片的操作。
+
+### 小结
+
+经过这样一系列的步骤，`Glide.with().load().into()`这一个流程可以说是基本上走完了，大致的过程就是，**传入上下文以获得与上下文对应的生命周期 → 传入获取资源相关渠道以及相关的配置信息 → 传入图片资源加载完成之后的归宿（ImageView etc）并开始加载 → 创建请求 → 创建加载图片引擎并从多种渠道获得图片（缓存 or 现场加载） → （如果缓存没有）创建一个引擎作业和解码作业负责加载图片 → 创建数据加载服务并开始加载 → 数据加载完成解码成图片资源 → 根据配置对图片资源进行一定的变换 → 回调，为 ImageView 设置最终图片资源。**
