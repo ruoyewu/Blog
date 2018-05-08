@@ -1,5 +1,5 @@
 ---
-title: Android CoordinatorLayout Behavior 源码分析
+title: Android CoordinatorLayout 介绍
 date: 2018-2-28 13:00
 tags:
 	- android
@@ -7,15 +7,11 @@ tags:
 	- 工具
 ---
 
-Android 官方的 Material Design 库让我们的 App 很轻松的就能实现一个比较炫酷的效果，如 CoordinatorLayout ，能够通过 Behavior 来协调它的各个子 View ，使得在 CoordiantorLayout 中的一个子 View 的状态发生变化的时候，对应的子 View 也能发生相应的变化。
+Android 官方提供的 Material Design 库让我们的 App 很轻松的就能实现一个比较炫酷的效果，如 CoordinatorLayout ，能够通过 Behavior 来协调它的各个子 View ，使得在 CoordiantorLayout 中的一个子 View 的状态发生变化的时候，对应的子 View 也能发生相应的变化。
 
-现在就来具体了解一下 CoordinatorLayout 以及它的通常用法。
+## COORDINATORLAYOUT
 
-## CoordinatorLayout
-
->   CoordinatorLayout is a super-powered FrameLayout.
-
-CoordinatorLayout 一个主要的使用方式就是与 CoordinatorLayout.Behavior 结合起来实现多个子 View 的联动，比如当 CoordinatorLayout 的一个子 View 移动的时候，另一个 View 也能随着它的移动而移动，或者其他的几个 View 都能跟随它的移动而移动，从而实现一个操作多种动态效果的结果。
+CoordinatorLayout 继承于 ViewGroup ，并且有自己的 LayoutParams 继承自 ViewGroup.MarginLayoutParams ，在这里面定义了一些 CoordinatorLayout 能够给子 View 提供的功能，如设置 Behavior 、 Gravity 等参数，一般使用的时候，都是直接在`.xml`文件里面给子 View 写上其对应的 Behavior 的路径，但是在 CoordinatorLayout 真正使用的是 Behavior 类，这里从路径转换到实例的工作就是由 LayoutParams 完成的，
 
 ## Behavior
 

@@ -1,3 +1,12 @@
+---
+title: Android 面试题
+date: 2018-04-03 12:00
+tags:
+	- android
+---
+
+
+
 # Android 面试题目
 
 ## Android 的四大组件
@@ -39,12 +48,6 @@
 3.  帧动画
 
     通过连续播放一连串的图片形成动画效果。
-
-## XML 解析
-
-1.  SAX
-2.  DOM
-3.  PULL
 
 ## RecyclerView 复用
 
@@ -171,9 +174,35 @@
 
     可见 → 不可见
 
-7.  onDestory
+7. onDestory
 
     销毁一个实例
+
+## Fragment 生命周期
+
+1. onAttach
+
+   与 Activity 建立关联的时候
+
+2. onCreate
+
+3. onCreateView
+
+4. onActivityCreated
+
+5. onStart
+
+6. onResume
+
+7. onPause
+
+8. onStop
+
+9. onDestroyView
+
+10. onDestroy
+
+11. onDetach
 
 ## Activity 屏幕旋转生命周期 
 
@@ -193,9 +222,11 @@
 
 3. 设置`android:configChanges="orientation|keyboardHidden"`
 
-    不调用生命周期，调用`onConfigurationChanged()`
+    各生命周期一次
 
-4.  设置`android:configChanges="orientation|keyboardHidden|screenSize"`
+4. 设置`android:configChanges="orientation|keyboardHidden|screenSize"`
+
+    不调用生命周期，调用`onConfigChanges()`
 
 ## Service 启动方法
 
@@ -685,34 +716,78 @@ Android 事件分发机制，是指当用户触摸了显示屏之后，这一触
 ## 设计模式
 
 1. 单例模式
+
+   ​
+
 2. Builder 模式
+
+   Dialog
+
 3. 原型模式
+
+   `clone()`方法
+
 4. 工厂方法模式
+
+   BitmapFractory
+
 5. 抽象工厂模式
+
 6. 策略模式
+
 7. 状态模式
+
 8. 责任链模式
+
 9. 解释器模式
+
 10. 命令模式
+
 11. 观察者模式
+
 12. 备忘录模式
+
 13. 迭代器模式
+
 14. 模版方法模式
+
 15. 访问者模式
+
 16. 中介者模式
+
 17. 代理模式
+
 18. 组合模式
+
 19. 适配器模式
+
 20. 装饰模式
+
 21. 享元模式
+
 22. 外观模式
+
 23. 桥接模式
 
 ## SQLite 数据库与 APK 一起发布
 
+将`dictionary.db`文件复制到`res/raw`文件夹中，然后在代码中使用`openDatabase()`方法打开数据库文件，如果文件不存在，将会自动将`res/raw`处的`dirtionary.db`文件复制到`/sdcard/dictionary`目录中。
+
+## 一条信息所占的 byte
+
+140 byte ，70 个汉字，160个字母（因为一个字母 7 byte）
+
 ## Intent 使用
 
 Intent 作为 Android 四大组件之间的通信工具，在一个组件中启动另一个组件或者是给另一个组件发消息，一般使用的都是 Intent ，将 Intent 需要执行的逻辑放到内部，并可以传递一些数据，就可以通过startActivity(Intent)、startService(Intent)等方法。
+
+### 显式 Intent
+
+明确指出目标组件的名称，如`Intent intent = new Intent(this, MainActivity.class)`
+
+### 隐式 Intent
+
+没有明确指出组件的名称，只标明了`action`或`category`字段，然后由系统查找`IntentFilter`来寻找对应的组件。
 
 ## Service 生命周期
 
@@ -772,6 +847,66 @@ LruCache lruCache = new LruCache(MAX_SIZE) {
 **关键字标记**	防止被标记变量参与序列化
 
 不过这只是一个标记性关键字，如果在看到这段代码的时候，阅读者会知道这个变量不参与序列化，但是如果在序列化的代码实现中依旧序列化了这个变量，它依旧是可以被序列化的，在 Android Studio 上有默认的序列化工具，对一个类序列化的时候，被标记`transient`的变量，将会自动不加入序列化。
+
+## volatile 使用
+
+**关键字标记**	线程在每次使用变量的时候，都会读取变量修改后的最新的值。
+
+并不能进行原子性操作，但是在某些情况下能够解决轻微的同步问题。
+
+## synchronized 使用
+
+**关键字标记**	线程锁
+
+加上 synchronized 的代码块，在多线程访问的时候，同一时刻只能有一个线程能够使用这段代码。
+
+synchronized 有三种使用方法，分别是，修饰方法，修饰对象，修饰类
+
+### 修饰方法
+
+```java
+public synchronized void test() {
+    // do something
+}
+```
+
+这种使用方法，锁住的是一个对象的方法，即只有对同一个对象而言，它存在线程间的锁，对于两个不同的对象的这个方法，在多线程中运行的时候不会存在锁。
+
+如果这个方法是静态的，
+
+```java
+public static synchronized void test() {
+    // do something
+}
+```
+
+那么这个锁机制就相当于是对类进行的锁（而不是对象），因为静态方法本身就是属于类的，所以不管通过对象还是直接通过类名调用这个方法，都是存在线程锁的。
+
+### 修饰对象
+
+```java
+public void test() {
+    synchronized (this) {
+        // do something
+    }
+}
+```
+
+这个锁机制与修饰方法差不多，不过锁住的只有这个`synchronized`修饰的代码段，同一方法中不被框住的代码段还是没有锁的。
+
+### 修饰类
+
+```java
+class Test {
+    public void test() {
+        synchronized (Test.class) {
+            // do something
+        }
+    }
+}
+```
+
+使用这种方法锁住的代码段，锁住的是整个类型，即只要是这个类的对象，即便不是同一个对象，在执行到这段代码的时候，都会有线程锁。
 
 ## GC
 
@@ -858,3 +993,317 @@ Java 使用的是垃圾回收机制，可以自动完成不再使用的实例的
 4. 抽象
 
    通过构建接口、抽象类的方法，使别的类依赖于抽象而不是具体的某个人，然后使用的时候，是使用这个抽象的具体实现，同样可以有多种实现，而不需要依赖于某一个具体类
+
+## XML 解释技术
+
+1. DOM
+
+   一次性读入内存生成文档树，然后对节点进行遍历等操作
+
+2. SAX
+
+   不会一次性读入内存，采用自上而下解析操作，不能任意读取节点
+
+## String s = new String("abc")
+
+1. 首先将`"abc"`创建在常量池中
+2. 然后在堆中创建一个对象 s
+
+## Java 中的流
+
+1. 字节流`InputStream OutputStream`
+2. 字符流`Reader Writer`
+3. 对象流`ObjectInputStream ObjectOutputStream`
+
+## JVM 加载 class 文件
+
+通过 ClassLoader 和它的子类来实现。
+
+## List 介绍
+
+List 有三个实现类，分别是`ArrayList`、`LinkedList`、`Vector`，他们都实现了 List 接口，所以在很多需要使用链表的时候它们是通用的，不过具体的实现有所不同。
+
+### ArrayList
+
+ArrayList 内部存储数据使用的是数组，没有线程锁，多个线程可以同时对一个 ArrayList 进行操作，所以它是线程不安全的，同时还有就是数组的特点，非常快速的查询能力，但是需要调整结构的操作，比如在某个位置插入一个数据，就需要这个数据后面的所有数据后移一位，相比来说比较费时。
+
+### Vector
+
+Vector 与 ArrayList 相比基本相同，都是使用数组存放数据，但是 Vector 的添加和删除方法都加上一个线程锁，所以它是线程安全的，但是由于线程锁，也相应的增加了使用 Vector 的开销。
+
+### LinkedList
+
+LinkedList 是内部使用链表存储数据的，对于查询某一项数据来说，它只能通过遍历找到，但是对于结构的变化，它只需要变化相应的指针就可以了，所以与 ArrayList(Vector) 区别的 LinkedList ，就是为了适应一些需要经常变换结构的 List 。
+
+## Map 介绍
+
+Map 接口的实现一般有三个，HashMap 、 Hashtable 、 TreeMap 。
+
+### HashMap
+
+HashMap 使用的是 Hash 表来存储数据，解决冲突的方法是拉链法。然后使用 HashMap 的时候有一个构造方法`HashMap(int, float)`分别给初始容量和加载因子赋值，对于容量，我们知道，当 HashMap 中存储的数据达到我们预定的大小的时候，就会对结构重构一下，增加线性表的大小，然后重新将数据插入到这个表中，而新表的大小是多大，就依靠这个加载因子来决定的，即**原大小  x 2 x 加载因子**，关于加载因子的大小，较大的时候减小了重排的次数，但是空间占用较大，较小的时候重排次数会比较多，但是空间利用率较高。
+
+另外，HashMap 是线程不安全的，它允许多线程同时访问。
+
+### Hashtable
+
+Hashtable 与 HashMap 的功能基本类似，但是 Hashtable 是线程安全的，它与 HashMap 的关系就好比 ArrayList 和 Vector 一样。
+
+### TreeMap
+
+TreeMap 实现了SortedMap ，所以它是有序的，它通过二叉树保存数据，所以能够实现数据的有序存储，同时使用 TreeMap 的时候，需要实现一个 Comparator 用来比较 key 从而实现自定义的有序排列。
+
+## 匿名内部类
+
+顾名思义，匿名内部类没有自己的名字，匿名内部类需要实现一个且仅一个接口或者继承一个且仅一个父类，通过`new ${接口名 / 父类名} { }`的方法使用一个类，匿名内部类会隐式持有使用这个匿名内部类的类的实例，除非是在 static 方法中使用的。
+
+因为在使用匿名内部类的时候，所调用的方法都只能是当前类的方法（如果重写了父类的方法或者父类没有的方法）或者父类的方法（未重写的父类的方法），所以这个类的每一个方法都不能是抽象的方法，所以一个匿名内部类实现接口或者继承一个父类的时候，必须实现所有的抽象方法。
+
+当在一个内部类中使用外部的变量的时候，这个变量应该是 final 字段修饰的，为了防止外部对这个变量的改变导致内外不一致。究其原因，在内部类中使用外部变量的时候，并不是直接的调用外部变量，在将`.java`文件编译成`.class`文件的过程中，编译器给内部类增加了一个构造方法，而构造方法传入的值就是我们需要在内部类中使用的所有外部的变量，如：
+
+`Outer.java`
+
+```java
+public class Outer {
+    public void test(String s) {
+        class Inner {
+            public void test() {
+                System.out.println(s);
+            }
+        }
+    }
+}
+```
+
+`Outer.class`
+
+```java
+public class Outer {
+    public Outer() {
+    }
+
+    public void test(String s) {
+        class Inner {
+            Inner(String var2) {
+                this.val$s = var2;
+            }
+
+            public void test() {
+                System.out.println(this.val$s);
+            }
+        }
+
+    }
+}
+```
+
+所以实际上代码运行的时候在内部类中使用的变量与外部的变量完全是两个变量，只不过写代码的时候好像是共享的变量，这样理解的话，如果在内部类中改变了上述的变量 s 的值，并不会导致方法`test(String)`方法中的值改变，这在程序员看来不可以理解，所以为了统一性，要求所有需要在内部类中是使用的变量都应该是不可修改的，这样的话，就可以确保**实际运行起来**与**从代码上看起来**是一致的。不过虽然从原理上来说，在内部类中修改外部变量（实际是从外部拷贝过来的变量值）是可以的，但是在编写代码的时候程序员能够访问到的还是那个外部的变量，而不能直接访问这个被拷贝过来的变量，所以 Java 为了一致性，就想出了这么个办法。当然如果实在需要更改这个变量的话，可以使用这种方法：
+
+`Outer.java`
+
+```java
+public class Outer {
+    public void test(String s) {
+        final String finalS = s;
+        class Inner {
+            public void test() {
+                String ss = finalS;
+                ss = "test " + ss; 
+                System.out.println(ss);
+            }
+        }
+    }
+}
+```
+
+如上述这种方法，这样写代码的话，就可以在代码里区分外部变量和内部变量了，使用一个 finalS 作为中转，但是一个需要明确的问题是，在外部不能访问内部类中的变量，同时内部类中也不能更改外部的变量。
+
+## try {} finally {}
+
+`try {} catch {} finally {}`方式能够帮助我们完成一些需要在 try 代码块执行完之后需要执行的操作，大多数为内存释放等后续工作，但是有一个问题是，finally 代码块什么时候会执行到，什么时候不会执行到。有以下几个例子：
+
+```java
+public class TryFinallyTest {
+    public static final String TRY_BLOCK = "try block";
+    public static final String FINALLY_BLOCK = "finally block";
+
+    public void test1() {
+        int i = 5 / 0;
+        try {
+            System.out.println(TRY_BLOCK);
+        }finally {
+            System.out.println(FINALLY_BLOCK);
+        }
+    }
+    // Exception in thread "main" java.lang.ArithmeticException: / by zero
+
+    public void test2() {
+        int i = 1;
+        if (i == 1) {
+            return;
+        }
+        try {
+            System.out.println(TRY_BLOCK);
+        }finally {
+            System.out.println(FINALLY_BLOCK);
+        }
+    }
+    //
+
+
+    public void test3() {
+        try {
+            System.out.println(TRY_BLOCK);
+            return;
+        }finally {
+            System.out.println(FINALLY_BLOCK);
+        }
+    }
+    // try block
+    // finally block
+
+    public void test4() {
+        try {
+            System.out.println(TRY_BLOCK);
+            int i = 5 / 0;
+        }finally {
+            System.out.println(FINALLY_BLOCK);
+        }
+    }
+    // try block
+    // Exception in thread "main" java.lang.ArithmeticException: / by zero
+    // finally block
+
+    public void test5() {
+        try {
+            System.out.println(TRY_BLOCK);
+            System.exit(0);
+        }finally {
+            System.out.println(FINALLY_BLOCK);
+        }
+    }
+    // try block
+
+    public int test6() {
+        int i = 1;
+
+        try {
+            return i;
+        }finally {
+            i ++;
+        }
+    }
+    // out : 1
+
+    public int test7() {
+        int i = 1;
+        try {
+
+        }finally {
+            i ++;
+            return i;
+        }
+    }
+    // out : 2
+
+    public int test8() {
+        int i = 1;
+        try {
+
+        }finally {
+            i ++;
+        }
+        return i;
+    }
+    // out 2
+}
+```
+
+由上述一系列测试以及结果可以看到，当程序能够执行不到 try 代码段的时候，是不会执行到 finally 代码段的，同时，如果在 try 代码段中程序直接结束（如调用`System.exit(0)`）也不能执行到 finally 代码段，同时如果 return 在 try 代码段内，finally 代码段会在 return 调用之前执行，但是 finally 执行的结果并不会反馈到 try 内，如果 return 不在 try 中执行，那么在 finally 中执行的代码是可以保存结果的。`//TODO(为什么)`
+
+## Java 9 新特性
+
+Java 9 在 2017 年 9 月 21 日发布，对 Java 8 做了一些改进。
+
+### Java 平台模块系统
+
+即 Project Jigsaw ，把模块化开发实践引入到 Java 中来。
+
+### Jshell
+
+为 Java 增加了类似 NodeJS 和 Python 中的读取-求值-打印循环。可以在 jshell 中直接输入表达式并得到结果，可用于快速测试一个方法或得到某个结果。
+
+### 集合、Stream 和 Optinal
+
+在集合中，Java 9 新增了`List.of() Set.of() Map.of() Map.onEntries()`等工厂方法创建不可变集合。
+
+在 Stream 中，新增了方法`onNullable() dropWhile() takeWhile() iterate()`等。
+
+在 Optinal 中，新增了`ifPresentOrElese() or() stream()`等方法。
+
+### 进程 API
+
+Java 9 新增了 ProcessHandle 接口，用于管理原生进程。
+
+### 平台日志 API 和服务
+
+Java 9 允许为 JDK 和应用配置同样的日志实现。
+
+### 反应式流（Reactive Stream）
+
+反应式编程思想流行的结果，Java 平台上的流式反映库有 RxJava 和 Reactor 。将反应流式规范的核心添加到了 Java 9 的 java.util.concurrent.Flow 类中。
+
+### 变量句柄
+
+变量句柄是一个变量或一组变量的引用，包括静态域、非静态域、数组元素和堆外数据结构中的组成部分等。
+
+### 改进方法句柄
+
+类 java.lang.invoke.MethodHandles 类中增加了静态方法来创建不同的方法句柄。
+
+### 并发
+
+CompletableFuture 增加了几个方法。
+
+### Nashorn
+
+Java 8 中引入的新的 JavaScript 引擎，在 Java 9 中 Nashorn 实现了一些 ECMAScript 6 规范中的新特性，如模版字符串、二进制、八进制字面量、迭代器、for..of 循环和箭头函数等。
+
+### I/O 流新特性
+
+java.io.InputStream 中增加了新的方法来读取和复制 InputStream 中包含的数据。
+
+`readAllBytes()`
+
+`readNBytes()`
+
+`transferTo()`
+
+### 改进应用安全性能
+
+Java 9 新增了 4 个 SHA-3 哈希算法，`SHA3-224 SHA3-256 SHA3-384 SHA3-512`
+
+同时还有 java.security.SecureRandom 生成使用 DRBG 算法的强随机数
+
+### 用户界面
+
+类 java.awt.Desktop 增加了新的功能。
+
+### 统一 JVM 日志
+
+Java 9 中，JVM 有了统一的日志记录系统。
+
+### 其他
+
+Java 9 允许在接口中使用私有方法。
+
+try-with-resources 中可以使用 effectively-final 变量。
+
+类 java.lang.StackWalker 可以对线程的堆栈进行遍历。
+
+Unicode 升级到 8.0。
+
+ResourceBundle 加载属性文件的默认编码从 ISO-8859-1 到 UTF-8 。
+
+注解 @Deprecated 得到增强。
+

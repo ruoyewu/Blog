@@ -31,15 +31,11 @@ uri : "content://com.android.providers.media.documents/document/image%3A767"
 ```java
 Writing exception to parcel
 java.lang.SecurityException: Permission Denial: writing android.support.v4.content.FileProvider uri content://com.wuruoye.demo.fileprovider/external_files/com.wuruoye.demo/image/1521722273255.jpg from pid=19096, uid=10016 requires the provider be exported, or grantUriPermission()
-    at android.content.ContentProvider.enforceWritePermissionInner(ContentProvider.java:682)
-    at android.content.ContentProvider$Transport.enforceWritePermission(ContentProvider.java:497)
-    at android.content.ContentProvider$Transport.enforceFilePermission(ContentProvider.java:469)
-    at android.content.ContentProvider$Transport.openAssetFile(ContentProvider.java:384)
-    at android.content.ContentProviderNative.onTransact(ContentProviderNative.java:262)
-    at android.os.Binder.execTransact(Binder.java:565)
+    ...
+    ...
 ```
 
-这里，可以看到说是这个负责剪裁的应用没有对这个 Uri 写的权限，同时还给了提示，那么按照这个提示来好了，通过`grantUriPermission()`方法对应用授权，
+这里，可以看到说是这个负责剪裁的应用没有对这个 Uri 写的权限，同时还给了提示，那么按照这个提示来，通过`grantUriPermission()`方法对应用授权，
 
 ## FileProvider 使用
 
