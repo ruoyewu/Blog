@@ -100,7 +100,7 @@ chmod +x repo
 
 ### 下载源码
 
-由于墙的原因，我们无法直接从 google 官方提供的链接中下载 android 的源码，所以只能使用国内的镜像下载，国内的镜像中[清华镜像]()和[科大镜像]()都是挺好的，可以直接进去根据他们的教程下载。
+由于墙的原因，我们无法直接从 google 官方提供的链接中下载 android 的源码，所以只能使用国内的镜像下载，国内的镜像中[清华镜像](https://mirrors.tuna.tsinghua.edu.cn/help/AOSP/)和[科大镜像](https://lug.ustc.edu.cn/wiki/mirrors/help/aosp)都是挺好的，可以直接进去根据他们的教程下载。
 
 android 源码的下载有两种方式，一种是直接下载一个初始化包，然后使用 repo 直接从这个包里 checkout 出来，另一种则是传统的方法，在执行 repo 命令的时候下载。
 

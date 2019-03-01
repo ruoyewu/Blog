@@ -12,7 +12,7 @@ timezone:
 
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
-url: https://wuruoye.com
+url: http://wuruoye.com
 root: /
 permalink: :title/
 permalink_defaults:
@@ -90,7 +90,7 @@ deploy:
   user: ubuntu
   port: 22
   delete: true
-  root: /home/ubuntu/project/blog
+  root: /home/ubuntu/app/blog
 
 search:
   path: search.xml
