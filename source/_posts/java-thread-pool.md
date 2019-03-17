@@ -3,7 +3,6 @@ title: Java 线程池介绍
 date: 2018-05-01
 tags:
 	- java
-	- android
 ---
 
 ## 线程
@@ -45,7 +44,7 @@ Executor 是一个接口，只有一个方法`exec(Runnable)`，其中关于线�
 
 4. BlockingQueue
 
-   线程池中用于存放待处理任务的队列，多个线程公用此任务队列，并从中取出任务，在取任务的时候可能会进入堵塞状态，直到添加进来任务才会返回。
+   线程池中用于存放待处理任务的队列，多个线程共用此任务队列，并从中取出任务，在取任务的时候可能会进入堵塞状态，直到添加进来任务才会返回。
 
 5. Worker
 
@@ -361,6 +360,55 @@ ScheduledThreadPoolExecutor 可以执行 Runnable 和 Callable ，它们都会�
 ## 线程池使用
 
 虽然线程池的核心实现是 ThreadPoolExecutor ，但是线程池还是有几个不同的种类的，而且线程池的构造参数太多，对于一些从简的人而言可能会有些不适，而 Executors 就是为了解决这个问题出现的，Executors 可以被看作为一个线程池的工厂类，它提供了众多的静态方法如`newFixedThreadPool(int)`用来生成线程池，如果没有比较多的定制性需求，如自定义 BlockingQueue 、自定义 RejectedExecutionHandler 等，使用这个类可以比较简单的生成不同的线程池。
+
+线程池的使用也可以利用工厂类 Executors ，这个类提供了一些生成线程池的工厂方法，这些线程池共四种：
+
+-   FixedThreadPool
+
+    ```java
+    public static ExecutorService newFixedThreadPool(int nThreads) {
+        return new ThreadPoolExecutor(nThreads, nThreads,
+                                      0L, TimeUnit.MILLISECONDS,
+                                      new LinkedBlockingQueue<Runnable>());
+    }
+    ```
+
+    创建一个拥有固定线程数的线程池，当所有的线程都在运行时不接受新任务。
+
+-   SignleThreadExecutor
+
+    ```java
+    public static ExecutorService newSingleThreadExecutor() {
+        return new FinalizableDelegatedExecutorService
+            (new ThreadPoolExecutor(1, 1,
+                                    0L, TimeUnit.MILLISECONDS,
+                                    new LinkedBlockingQueue<Runnable>()));
+    }
+    ```
+
+    创建一个只有一个线程的线程池。
+
+-   CachedThreadPool
+
+    ```java
+    public static ExecutorService newCachedThreadPool() {
+        return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                                      60L, TimeUnit.SECONDS,
+                                      new SynchronousQueue<Runnable>());
+    }
+    ```
+
+    参数如上，这种线程池在没有任务的时候不会持续运行线程，一个线程的存活时间为 60s ，也就是说如果一个任务在另一个任务执行完的 60s 内被提交给线程池，线程池就会复用这个线程，超时就会将线程销毁。
+
+-   ScheduledThreadPool
+
+    ```java
+    public static ScheduledExecutorService newScheduledThreadPool(int corePoolSize) {
+        return new ScheduledThreadPoolExecutor(corePoolSize);
+    }
+    ```
+
+    创建一个核心线程数 corePoolSize ，最大线程数 Integer.MAX_VALUE 的线程池，与普通的 ThreadPoolExecutor 相比的话，就是可以延迟执行一个任务，通过`schedule()`方法。
 
 ## 总结
 

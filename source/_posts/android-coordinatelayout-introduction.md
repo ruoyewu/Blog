@@ -3,13 +3,11 @@ title: Android CoordinatorLayout 介绍
 date: 2018-2-28 13:00
 tags:
 	- android
-	- android 源码
-	- 工具
 ---
 
 Android 官方提供的 Material Design 库让我们的 App 很轻松的就能实现一个比较炫酷的效果，如 CoordinatorLayout ，能够通过 Behavior 来协调它的各个子 View ，使得在 CoordiantorLayout 中的一个子 View 的状态发生变化的时候，对应的子 View 也能发生相应的变化。
 
-## COORDINATORLAYOUT
+## CoordinatorLayout
 
 CoordinatorLayout 继承于 ViewGroup ，并且有自己的 LayoutParams 继承自 ViewGroup.MarginLayoutParams ，在这里面定义了一些 CoordinatorLayout 能够给子 View 提供的功能，如设置 Behavior 、 Gravity 等参数，一般使用的时候，都是直接在`.xml`文件里面给子 View 写上其对应的 Behavior 的路径，但是在 CoordinatorLayout 真正使用的是 Behavior 类，这里从路径转换到实例的工作就是由 LayoutParams 完成的，
 
@@ -39,8 +37,6 @@ public class CustomBehavior extends CoordinatorLayout.Behavior<View> {
           android:layout_width="match_parent"/>
 </CoordinatorLayout>
 ```
-
-
 
 另一种设置 Behavior 的方法，就是在代码里面直接设置，这里要用到`CoordinatorLayout.LayoutParams`这个类，通过直接调用对应的 Behavior 类的方式为 View 设置 Behavior 并保存在它的 LayoutParams 中，使用方法为：
 

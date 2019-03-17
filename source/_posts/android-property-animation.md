@@ -3,7 +3,6 @@ title: Android 属性动画
 date: 2018-04-19 10:40
 tags:
 	- android
-	- android 源码
 ---
 
 ## Android 动画
@@ -52,7 +51,7 @@ ValueAnimator 的工作是，我们给定至少两个关键帧（初始值和最
 
 具体的通过关键帧和时间计算出中间值的过程，交由`android.animation.Keyframes`完成。
 
-## KEYFRAMES
+## KeyFrames
 
 Keyframes 是一个接口类，需要实现其中的方法完成工作，如`android.animation.KeyframeSet`，它计算中间值的方法是，通过当前所处的时间，得到当前所处的关键帧的范围，然后再根据两个关键帧的时间，通过插值的方法，取当前时间所对应的值，就得到结果了。
 

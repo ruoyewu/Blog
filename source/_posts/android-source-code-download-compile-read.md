@@ -2,10 +2,7 @@
 title: Android 源码下载、编译、查看流程记录
 date: 2018-01-13 01:35
 tags:
-	- mac
 	- android
-	- android 源码
-	- 工具
 ---
 
 ## 概述

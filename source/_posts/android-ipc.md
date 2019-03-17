@@ -3,7 +3,6 @@ title: Android IPC 方案
 date: 2018-03-18 16:16
 tags:
 	- android
-	- 《android 开发艺术探索》
 ---
 
 `IPC(Inter-Process Communication): 进程间通信`是所有系统中不可忽略的一部分，在 Android 中，我们知道系统会为每个 APP 分配一个 DVM 实例，而每个 DVM 实例都处于一个单独的进程中，也就是说，一般情况下每个 APP 都处于一个单独的进程，而 APP 之间的通信肯定是在所难免的，所以就需要了解一下 Android 上的 IPC 机制。

@@ -3,7 +3,6 @@ title: Android apk 编译流程
 date: 2018-03-13 09:30
 tags:
 	- android
-	- 工具
 ---
 
 ## Apk 编译

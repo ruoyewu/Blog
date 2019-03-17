@@ -1,7 +1,7 @@
 ---
 title: 设计模式六大原则
 tags: 
-	- 设计模式
+	- design pattern
 ---
 
 ## 设计模式

@@ -1,7 +1,8 @@
 ---
 title: Android 事件分发
 date: 2017-10-19 00:00:00
-tags: android
+tags: 
+	- android
 ---
 
 # android事件分发

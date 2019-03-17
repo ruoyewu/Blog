@@ -1,7 +1,8 @@
 ---
 title: Activity 简述
 date: 2017-05-06 00:00:00
-tags: android
+tags: 
+	- android
 ---
 
 `activity`是 `Android`系统四大应用组件之一，其它三个为 `Service`（服务） 、`BroadcastReceiver`（广播）、`ContentProvider`（内容提供器）。
@@ -11,8 +12,6 @@ tags: android
 2.  `activity`通常是一个单独的窗口。
 
 3.  `activity`一般通过`Intent`通信。
-
-
 
 4.  所有的组件在使用时都要在Manifest中注册，activity注册方法为：
 

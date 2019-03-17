@@ -9,7 +9,7 @@ tags:
 
 Context 是一个抽象类，根据其翻译“上下文、环境”就可以了解到，Context 与应用的运行密不可分。下面是源码中对 Context 的介绍：
 
-> Interface to global information about an application environment.  This is an abstract class whose implementation is provided by the Android system.  Itallows access to application-specific resources and classes, as well asup-calls for application-level operations such as launching activities, broadcasting and receiving intents, etc.
+> Interface to global information about an application environment.  This is an abstract class whose implementation is provided by the Android system. It allows access to application-specific resources and classes, as well asup-calls for application-level operations such as launching activities, broadcasting and receiving intents, etc.
 
 下面是 Context 类的继承结构：
 

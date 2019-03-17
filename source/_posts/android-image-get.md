@@ -1,7 +1,8 @@
 ---
 title: Android 拍照、打开相册
 date: 2017-05-06 00:00:00
-tags: android
+tags: 
+	- android
 ---
 
 ## 获取照片方法

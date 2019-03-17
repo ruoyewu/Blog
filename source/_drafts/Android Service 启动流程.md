@@ -16,7 +16,7 @@ tags:
 
 两种方法启动 Service 的具体过程也有些区别：
 
-## STARTSERVICE 流程
+## StartService 流程
 
 > 缩写：
 >
@@ -98,7 +98,7 @@ tags:
 
 ![](http://blog-1251826226.coscd.myqcloud.com/start_service_process_class.jpg)
 
-## BINDSERVICE 流程
+## BindService 流程
 
 > 缩写：
 >

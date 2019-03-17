@@ -2,8 +2,7 @@
 title: 设计模式 - 单例模式
 date: 2018-05-03
 tags: 
-	- 设计模式
-	- java
+	- design pattern
 ---
 
 ## 介绍

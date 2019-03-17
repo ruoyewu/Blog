@@ -3,7 +3,6 @@ title: Android Handle 机制
 date: 2018-04-28 19:00
 tags:
 	- android
-	- android 源码
 ---
 
 ## ANDROID 消息机制

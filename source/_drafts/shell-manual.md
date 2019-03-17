@@ -2,9 +2,7 @@
 title: Shell 使用手册
 date: 2018-01-24 15:25
 tags: 
-	- linux
-	- shell
-	- 工具
+	- tech
 ---
 
 ## Shell

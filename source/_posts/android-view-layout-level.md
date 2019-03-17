@@ -3,7 +3,6 @@ title: Android view 视图层次
 date: 2018-01-10 22:47
 tags: 
 	- android
-	- android 源码
 ---
 
 ## Android 页面显示层次
