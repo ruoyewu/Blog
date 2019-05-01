@@ -37,8 +37,8 @@ tags:
 
 ![事件分发流程图](http://upload-images.jianshu.io/upload_images/966283-d01a5845f7426097.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
->   看上面这张图，当用户产生一个触摸事件之后，最先会交给当前 activity 的 dispatchTouchEvent 处理，然后在 activity 的 dispatchTouchEvent 中会调用当前布局 window 的 dispatchTouchEvent 方法，即 phoneWindow，
->
+看上面这张图，当用户产生一个触摸事件之后，最先会交给当前 activity 的 dispatchTouchEvent 处理，然后在 activity 的 dispatchTouchEvent 中会调用当前布局 window 的 dispatchTouchEvent 方法，即 phoneWindow，
+
 >   ```java
 >   	/**
 >        * Called to process touch screen events.  You can override this to
@@ -60,27 +60,27 @@ tags:
 >           return onTouchEvent(ev);
 >       }
 >   ```
->
->   而在phoneWindow 中的 dispatchTouchEvent 方法中又继续调用了 DecorView 的 superDispatchTouchEvent 方法。
->
+
+而在phoneWindow 中的 dispatchTouchEvent 方法中又继续调用了 DecorView 的 superDispatchTouchEvent 方法。
+
 >   ```java
 >   	@Override
 >   	public boolean superDispatchTouchEvent(MotionEvent event) {
 >       	return mDecor.superDispatchTouchEvent(event);
 >   	}
 >   ```
->
->   然后在 DecorView 中，superDispatchTouchEvent 又而 DecorView 是一个 activity 的布局中最底层的一个 ViewGroup，从这里开始，这个触摸事件正式进入了 View 体系中进行分配。而在 DecorView 中，
->
+
+
+
 >   ```java
 >   	public boolean superDispatchTouchEvent(MotionEvent event) {
 >           return super.dispatchTouchEvent(event);
 >       }
 >   ```
->
->   又继续调用了父类的 dispatchTouchEvent 方法，DecorView 的父类是一个 FrameLayout，FrameLayout 并没有关于dispatchTouchEvent 的实现，接着找 FrameLayout 的父类 ViewGroup，在 ViewGroup 中有对 dispatchTouchEvent 方法的具体实现，包括各种对于是否拦截此次事件的判断。
->
->   另外，在 activity 的 dispatchTouchEvent 方法中，有一个判断，`if ( getWindow().superDispatchTouchEvent(ev) )`，这里面的返回值就是各级 view 的 dispatchTouchEvent 的返回值，表示是否消费事件，所以这里的逻辑就是，判断是否有 view 消费了这次事件，如果有，直接返回 true，如果没有，就把这个事件交给自己的 onTouchEvent 处理，并返回处理的结果。
+
+又继续调用了父类的 dispatchTouchEvent 方法，DecorView 的父类是一个 FrameLayout，FrameLayout 并没有关于dispatchTouchEvent 的实现，接着找 FrameLayout 的父类 ViewGroup，在 ViewGroup 中有对 dispatchTouchEvent 方法的具体实现，包括各种对于是否拦截此次事件的判断。
+
+另外，在 activity 的 dispatchTouchEvent 方法中，有一个判断，`if ( getWindow().superDispatchTouchEvent(ev) )`，这里面的返回值就是各级 view 的 dispatchTouchEvent 的返回值，表示是否消费事件，所以这里的逻辑就是，判断是否有 view 消费了这次事件，如果有，直接返回 true，如果没有，就把这个事件交给自己的 onTouchEvent 处理，并返回处理的结果。
 
 ### dispatchTouchEvent
 
@@ -126,9 +126,7 @@ public void requestDisallowInterceptTouchEvent(boolean disallowIntercept) {
 }
 ```
 
-可以看到当自己的子 view 调用 parent.requestDisallowInterceptTouchEvent() 方法的时候，ViewGroup 就会将自己的 FLAG_DISALLOW_INTERCEPT 置为一个值，使得`final boolean disallowIntercept = (mGroupFlags & FLAG_DISALLOW_INTERCEPT) != 0;`为 true，同时当前 ViewGroup 还会继续调用自己的父类的此方法，保证这一系列事件能够到达需要这个事件的 view 那里。同时在判断是否拦截的时候除了判断是否是 MotionEvent.ACTION_DOWN 之外，还判断了 mFirstTouchTarget 是否为空
-
-//TODO
+可以看到当自己的子 view 调用 parent.requestDisallowInterceptTouchEvent() 方法的时候，ViewGroup 就会将自己的 FLAG_DISALLOW_INTERCEPT 置为一个值，使得`final boolean disallowIntercept = (mGroupFlags & FLAG_DISALLOW_INTERCEPT) != 0;`为 true，同时当前 ViewGroup 还会继续调用自己的父类的此方法，保证这一系列事件能够到达需要这个事件的 view 那里。同时在判断是否拦截的时候除了判断是否是 MotionEvent.ACTION_DOWN 之外，还判断了 mFirstTouchTarget 是否为空。
 
 之后会在继续判断是否被取消了此次事件，即是否本应该传递到这里的一个事件，被上层 view 给拦截了，那么就会在这里响应一个 MotionEvent.ACTION_CANCEL，如：‘
 
@@ -217,5 +215,4 @@ public void setOnClickListener(@Nullable OnClickListener l) {
 
 ACTION_CANCEL 表示 当前手势操作被取消。
 
-关于何时会响应 MotionEvent.ACTION_CANCEL 事件，一般的解释为 当用户的手指从当前控件移动到其他控件。比如说有一 ViewGroup a，它有一个子 View b， 手指最先点击在了 b 上面，然后慢慢移动手指，直到移除 b 的范围，并且触点还在 a 的范围上时，b 就会响应这个事件。
-
+关于何时会响应 MotionEvent.ACTION_CANCEL 事件，一般的解释为 当用户的手指从当前控件移动到其他控件。比如说有一 ViewGroup a，它有一个子 View b， 手指最先点击在了 b 上面，然后慢慢移动手指，直到移除 b 的范围，并且触点还在 a 的范围上时，b 就会响应这个事件。又或者是，一个事件流从最开始都是由某个 View 消费的，但是在某个时刻，它的某个父 View 因为某种原因需要拦截这个事件，此时就需要给子 View 传递一个 MotionEvent.ACTION_CANCEL 事件告诉子 View 取消对这个事件的监听，做一些资源回收工作等。

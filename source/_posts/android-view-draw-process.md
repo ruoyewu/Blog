@@ -7,6 +7,8 @@ tags:
 
 前面讲到 [Android View 加载流程](../android-view-inflate-process)，使用 LayoutInflater 将 xml 文件转变成 View ，但是还需要将 View 绘制出来，才能被用户看到，这一过程为绘制流程。由于 Android 的整个 View 是以树的形式出现的，所以很多关于 View 的机制，如加载、事件分发等，都是以递归的方法完成的，绘制流程也不意外。
 
+有一个问题，`setContentView()`发生在`onCreate()`阶段，也就是说此时 Activity 要展示的 View 已经加载好了，但是通用的说法是在`onResume()`阶段 Activity 才会变得可见，这两者之间是否矛盾？其实并不矛盾，在`setContentView()`阶段，系统会将待展示的 View 从 xml 文件中加载出来并添加到 DecorView 上，但是 View 光加载出来还不行，只有将 View 绘制出来才算是用户可见。而绘制 View 需要的一个类是 ViewRootImpl ，这个类只有在`onResume()`阶段才会实例化并与 DecorView 关联，接着执行 View 的绘制，具体的流程见下：
+
 ### Resume
 
 对于每一个 view 而言，绘制分为三个阶段：测量、布局、绘制。只有在 view 经历过绘制之后，才能被用户看到。对应着 Activity 的生命周期，在 resume 阶段，activity 变为前台用户可以看到的界面，简单推测 view 的绘制应该也就是在这个阶段，那么就从`ActivityThread.handleResumeActivity()`方法出发，看看这之后的流程是什么。

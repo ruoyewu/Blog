@@ -40,7 +40,7 @@ public class ContextWrapper extends Context {
 
 #### 装饰者模式 VS 继承机制
 
-装饰器的作用是**动态地给现有的类添加新功能**，但是如果只是为了给类增加新功能的话，基于继承的机制也能完成这种功能，但是一个问题是，ContextImpl 只是 Context 的一个实现类，以后说不定还会出现其他的 Conetxt 实现类，在这种情况下，那么那些 Activity 、 Application 等是否要更换父类或者是增加一个继承于新的实现类的子类，那么这样显然会增加不必要的开销。所以就有了一个用于装饰 Context 某个实例的 ContextWrapper ，ContextWrapper 可以通过更改构造参数的方式随时切换不同的 Context 实现类，然后使用 ContextWrapper 作为 Activity 等的父类，对于子类看来与直接继承 ContextImpl 没有什么区别，如果要增加新功能或者加一些限制什么的只需要重写 ContextWrapper 的方法就好了。对于 Activity 和 Service 来说，它们身为不同的组件，在某些方面肯定会有些不一样，就可以通过重写 ContextWrapper‘ 的方法实现特定的功能，而不会对 ContextImpl 这个类有任何的影响。
+装饰器的作用是**动态地给现有的类添加新功能**，但是如果只是为了给类增加新功能的话，基于继承的机制也能完成这种功能，但是一个问题是，ContextImpl 只是 Context 的一个实现类，以后说不定还会出现其他的 Conetxt 实现类，在这种情况下，那么那些 Activity 、 Application 等是否要更换父类或者是增加一个继承于新的实现类的子类，那么这样显然会增加不必要的开销。所以就有了一个用于装饰 Context 某个实例的 ContextWrapper ，ContextWrapper 可以通过更改构造参数的方式随时切换不同的 Context 实现类，然后使用 ContextWrapper 作为 Activity 等的父类，对于子类看来与直接继承 ContextImpl 没有什么区别，如果要增加新功能或者加一些限制什么的只需要重写 ContextWrapper 的方法就好了。对于 Activity 和 Service 来说，它们身为不同的组件，在某些方面肯定会有些不一样，就可以通过重写 ContextWrapper 的方法实现特定的功能，而不会对 ContextImpl 这个类有任何的影响。
 
 ### Context 数量
 

@@ -42,7 +42,7 @@ tags:
 
 以下是activity的生命周期流程图。
 
-![activity生命周期](https://github.com/ruoyewu/ruoyewu.github.io/blob/master/assets/images/activity简介_1.png?raw=true)
+![activity生命周期](http://upload-images.jianshu.io/upload_images/3985563-a2caa08d3cbca003.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240))
 
 ### onCreate
 

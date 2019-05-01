@@ -5,4 +5,5 @@ tags:
 	- android
 ---
 
-ContentProvider 是 Android 的四大组件之一，多用于应用之间的数据交换
+ContentProvider 是 Android 中的四大组件之一，主要用于应用间的数据交换。
+
